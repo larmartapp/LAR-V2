@@ -14,7 +14,7 @@ body{
   font-family: Arial, sans-serif;
   padding: 15px;
   background: #f2f2f2;
-  padding-bottom: 90px;
+  padding-bottom: 140px;
 }
 
 .header{
@@ -76,6 +76,10 @@ button{
 .minus{background:#ff9800;color:white;}
 .delete{background:#e53935;color:white;}
 
+.addCategoryBtn{background:#9C27B0;color:white;margin-bottom:10px;padding:8px 12px;border-radius:5px;}
+.exportBtn{background:#607D8B;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
+.importBtn{background:#FF5722;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
+
 .selected{background:#c8e6c9;}
 
 .totalPanel{
@@ -97,6 +101,10 @@ button{
   font-weight:bold;
   font-size:20px;
 }
+
+.hiddenInput{
+  display:none;
+}
 </style>
 </head>
 <body>
@@ -104,6 +112,14 @@ button{
 <div class="header">
   <img src="logo-192.png" class="logo" alt="Logo">
   <h2>LAR Mart v2</h2>
+</div>
+
+<!-- Category controls -->
+<div>
+  <button class="addCategoryBtn" onclick="addCategoryPrompt()">+ Add Category</button>
+  <button class="exportBtn" onclick="exportData()">Export</button>
+  <button class="importBtn" onclick="document.getElementById('importFile').click()">Import</button>
+  <input type="file" id="importFile" class="hiddenInput" accept=".json" onchange="importData(event)">
 </div>
 
 <div id="list"></div>
@@ -114,21 +130,21 @@ button{
 </div>
 
 <script>
-// Service worker registration for PWA
+// PWA Service Worker
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js')
     .then(()=>console.log("Service Worker Registered"))
     .catch(err=>console.log("SW Error:", err));
 }
 
-// Optional: capture install prompt for Android
+// Android install prompt capture
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 });
 
-// Groceries app data
+// Groceries data
 let openCategory = null;
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   "Beverages":[
@@ -140,9 +156,13 @@ let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   ]
 };
 
+// Save to localStorage
 function save(){ localStorage.setItem("groceries", JSON.stringify(groceries)); }
+
+// Toggle category
 function toggleCategory(cat){ openCategory = (openCategory===cat)?null:cat; render(); }
 
+// Compute total
 function computeLiveTotal(){
   let total = 0;
   Object.keys(groceries).forEach(cat=>{
@@ -153,6 +173,7 @@ function computeLiveTotal(){
   document.getElementById("totalAmount").innerText = "₱" + total.toFixed(2);
 }
 
+// Render categories and items
 function render(){
   save();
   const list = document.getElementById("list");
@@ -200,6 +221,47 @@ function changeQty(cat,i,val){ groceries[cat][i].qty = Math.max(1, groceries[cat
 function updateName(cat,i,val){ groceries[cat][i].name = val; render(); }
 function updatePrice(cat,i,val){ groceries[cat][i].price = parseFloat(val)||0; render(); }
 function deleteItem(cat,i){ groceries[cat].splice(i,1); render(); }
+
+// Add category
+function addCategoryPrompt(){
+  const catName = prompt("Enter new category name:");
+  if(catName && !groceries[catName]){
+    groceries[catName] = [];
+    render();
+  } else if(groceries[catName]){
+    alert("Category already exists!");
+  }
+}
+
+// Export data
+function exportData(){
+  const dataStr = JSON.stringify(groceries,null,2);
+  const blob = new Blob([dataStr], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "lar-v2-backup.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Import data
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const imported = JSON.parse(e.target.result);
+      groceries = imported;
+      render();
+      alert("Data imported successfully!");
+    } catch(err){
+      alert("Invalid JSON file!");
+    }
+  };
+  reader.readAsText(file);
+}
 
 render();
 </script>
