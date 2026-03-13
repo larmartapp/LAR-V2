@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAR Mart v2</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+
+<style>
+body{font-family:Arial;padding:15px;background:#f2f2f2;}
+
+.header{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+margin-bottom:15px;
+}
+
+.logo{height:40px;}
+
+.category{
+background:white;
+margin-bottom:10px;
+border-radius:10px;
+overflow:hidden;
+}
+
+.cat-header{
+padding:15px;
+font-size:18px;
+font-weight:bold;
+background:#eeeeee;
+cursor:pointer;
+}
+
+.items{
+display:none;
+padding:10px;
+}
+
+.item{
+border:1px solid #ddd;
+padding:8px;
+margin-bottom:8px;
+border-radius:6px;
+}
+
+.row{
+display:flex;
+align-items:center;
+gap:6px;
+flex-wrap:wrap;
+margin-top:6px;
+}
+
+.qty{width:40px;text-align:center;}
+
+button{
+padding:5px 8px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.select{background:#2196F3;color:white;}
+.plus{background:#4CAF50;color:white;}
+.minus{background:#ff9800;color:white;}
+.delete{background:#e53935;color:white;}
+
+.selected{background:#c8e6c9;}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<img src="logo.png" class="logo">
+<h2>LAR Mart v2</h2>
+</div>
+
+<div id="list"></div>
+
+<script>
+
+let openCategory = null;
+
+let groceries = JSON.parse(localStorage.getItem("groceries")) || {
+"Beverages":[
+{name:"Coffee",price:120,qty:1,selected:false},
+{name:"Milk",price:90,qty:1,selected:false}
+],
+"Snacks":[
+{name:"Chips",price:50,qty:1,selected:false}
+]
+};
+
+function save(){
+localStorage.setItem("groceries",JSON.stringify(groceries));
+}
+
+function toggleCategory(cat){
+
+if(openCategory === cat){
+openCategory = null;
+}else{
+openCategory = cat;
+}
+
+render();
+}
+
+function render(){
+
+save();
+
+const list=document.getElementById("list");
+list.innerHTML="";
+
+Object.keys(groceries).forEach(category=>{
+
+const catDiv=document.createElement("div");
+catDiv.className="category";
+
+catDiv.innerHTML=`
+<div class="cat-header"
+onclick="toggleCategory('${category}')">
+${category}
+</div>
+
+<div class="items"
+style="display:${openCategory===category?'block':'none'}">
+</div>
+`;
+
+const itemsDiv=catDiv.querySelector(".items");
+
+groceries[category].forEach((item,index)=>{
+
+const itemDiv=document.createElement("div");
+itemDiv.className="item";
+if(item.selected)itemDiv.classList.add("selected");
+
+itemDiv.innerHTML=`
+<div>
+<input value="${item.name}"
+onchange="updateName('${category}',${index},this.value)">
+<input type="number"
+value="${item.price}"
+onchange="updatePrice('${category}',${index},this.value)">
+</div>
+
+<div class="row">
+<button class="minus"
+onclick="changeQty('${category}',${index},-1)">-</button>
+
+<span class="qty">${item.qty}</span>
+
+<button class="plus"
+onclick="changeQty('${category}',${index},1)">+</button>
+
+<button class="select"
+onclick="toggleSelect('${category}',${index})">
+${item.selected?'Unselect':'Select'}
+</button>
+
+<button class="delete"
+onclick="deleteItem('${category}',${index})">
+Delete
+</button>
+</div>
+`;
+
+itemsDiv.appendChild(itemDiv);
+
+});
+
+list.appendChild(catDiv);
+
+});
+
+}
+
+function toggleSelect(cat,i){
+groceries[cat][i].selected=!groceries[cat][i].selected;
+render();
+}
+
+function changeQty(cat,i,val){
+groceries[cat][i].qty+=val;
+if(groceries[cat][i].qty<1)groceries[cat][i].qty=1;
+render();
+}
+
+function updateName(cat,i,val){
+groceries[cat][i].name=val;
+render();
+}
+
+function updatePrice(cat,i,val){
+groceries[cat][i].price=parseFloat(val)||0;
+render();
+}
+
+function deleteItem(cat,i){
+groceries[cat].splice(i,1);
+render();
+}
+
+render();
+
+</script>
+
+</body>
+</html>
