@@ -1,44 +1,40 @@
-const CACHE_NAME = 'lar-v2-cache-v2';
+const CACHE_NAME = 'lar-v2-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
   '/logo-192.png',
-  '/logo-512.png'
+  '/logo-512.png',
+  // Add any CSS or JS files if separate
 ];
 
-// Install – cache core files
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Activate – remove old caches
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-    ))
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keyList) =>
+      Promise.all(keyList.map((key) => {
+        if (key !== CACHE_NAME) return caches.delete(key);
+      }))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch – serve from cache first, then network
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(resp => {
-      return resp || fetch(e.request).then(fetchResp => {
-        // Dynamically cache new requests (e.g., imported JSON)
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(e.request, fetchResp.clone());
-          return fetchResp;
-        });
-      }).catch(() => {
-        // Optional: fallback offline page or empty response
-        return new Response('', {status: 200, statusText: 'Offline'});
-      });
-    })
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => response || fetch(event.request))
+      .catch(() => {
+        // Optional fallback for offline
+        if (event.request.destination === 'document') {
+          return caches.match('/index.html');
+        }
+      })
   );
 });
