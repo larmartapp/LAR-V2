@@ -4,11 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LAR Mart v2</title>
-
-<!-- PWA manifest -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
-
 <style>
 body{
   font-family: Arial, sans-serif;
@@ -16,7 +13,6 @@ body{
   background: #f2f2f2;
   padding-bottom: 160px;
 }
-
 .header{
   display: flex;
   align-items: center;
@@ -24,36 +20,33 @@ body{
   gap: 10px;
   margin-bottom: 15px;
 }
-
 .logo{ height:40px; }
-
 .category{
   background:white;
   margin-bottom:10px;
   border-radius:10px;
   overflow:hidden;
 }
-
 .cat-header{
   padding:15px;
   font-size:18px;
   font-weight:bold;
   background:#eeeeee;
-  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:5px;
 }
-
 .items{
   display:none;
   padding:10px;
 }
-
 .item{
   border:1px solid #ddd;
   padding:8px;
   margin-bottom:8px;
   border-radius:6px;
 }
-
 .row{
   display:flex;
   align-items:center;
@@ -61,29 +54,22 @@ body{
   flex-wrap:wrap;
   margin-top:6px;
 }
-
 .qty{ width:40px; text-align:center; }
-
 button{
   padding:5px 8px;
   border:none;
   border-radius:5px;
   cursor:pointer;
 }
-
 .select{background:#2196F3;color:white;}
 .plus{background:#4CAF50;color:white;}
 .minus{background:#ff9800;color:white;}
 .delete{background:#e53935;color:white;}
-
 .addCategoryBtn{background:#9C27B0;color:white;margin-bottom:10px;padding:8px 12px;border-radius:5px;}
 .exportBtn{background:#607D8B;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 .importBtn{background:#FF5722;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
-
 .addItemBtn{background:#3F51B5;color:white;padding:5px 8px;border-radius:5px;margin-top:5px;}
-
 .selected{background:#c8e6c9;}
-
 .totalPanel{
   position: fixed;
   bottom:0;
@@ -98,14 +84,19 @@ button{
   align-items:center;
   z-index:999;
 }
-
 .totalAmount{
   font-weight:bold;
   font-size:20px;
 }
-
-.hiddenInput{
-  display:none;
+.hiddenInput{ display:none; }
+input.priceInput{
+  width:80px;
+}
+input.categoryInput{
+  font-weight:bold;
+  border:none;
+  background:#eeeeee;
+  font-size:18px;
 }
 </style>
 </head>
@@ -116,7 +107,6 @@ button{
   <h2>LAR Mart v2</h2>
 </div>
 
-<!-- Category & backup controls -->
 <div>
   <button class="addCategoryBtn" onclick="addCategoryPrompt()">+ Add Category</button>
   <button class="exportBtn" onclick="exportData()">Export</button>
@@ -132,21 +122,13 @@ button{
 </div>
 
 <script>
-// PWA Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js')
-    .then(()=>console.log("Service Worker Registered"))
-    .catch(err=>console.log("SW Error:", err));
+  navigator.serviceWorker.register('sw.js').then(()=>console.log("Service Worker Registered"))
+  .catch(err=>console.log("SW Error:", err));
 }
-
-// Android install prompt
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
-// Groceries data
 let openCategory = null;
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   "Beverages":[
@@ -158,13 +140,8 @@ let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   ]
 };
 
-// Save to localStorage
 function save(){ localStorage.setItem("groceries", JSON.stringify(groceries)); }
-
-// Toggle category
 function toggleCategory(cat){ openCategory = (openCategory===cat)?null:cat; render(); }
-
-// Compute total
 function computeLiveTotal(){
   let total = 0;
   Object.keys(groceries).forEach(cat=>{
@@ -175,31 +152,52 @@ function computeLiveTotal(){
   document.getElementById("totalAmount").innerText = "₱" + total.toFixed(2);
 }
 
-// Render categories and items
 function render(){
   save();
   const list = document.getElementById("list");
   list.innerHTML = "";
-
   Object.keys(groceries).forEach(category=>{
     const catDiv = document.createElement("div");
     catDiv.className = "category";
-    catDiv.innerHTML = `
-      <div class="cat-header" onclick="toggleCategory('${category}')">${category}</div>
-      <div class="items" style="display:${openCategory===category?'block':'none'}"></div>
-    `;
-    const itemsDiv = catDiv.querySelector(".items");
+    catDiv.innerHTML = `<div class="cat-header"></div>`;
+    const catHeader = catDiv.querySelector(".cat-header");
 
-    // Render items
+    // Editable category input
+    const catInput = document.createElement("input");
+    catInput.className = "categoryInput";
+    catInput.value = category;
+    catInput.onchange = ()=>{
+      if(catInput.value && !groceries[catInput.value]){
+        groceries[catInput.value] = groceries[category];
+        delete groceries[category];
+        category = catInput.value;
+        render();
+      } else {
+        alert("Category name exists or invalid");
+        catInput.value = category;
+      }
+    };
+    catHeader.appendChild(catInput);
+
+    // Toggle button
+    const toggleBtn = document.createElement("button");
+    toggleBtn.textContent = openCategory===category?"▼":"►";
+    toggleBtn.style.marginLeft="auto";
+    toggleBtn.onclick = ()=>{ toggleCategory(category); };
+    catHeader.appendChild(toggleBtn);
+
+    const itemsDiv = document.createElement("div");
+    itemsDiv.className="items";
+    itemsDiv.style.display = openCategory===category?"block":"none";
+
     groceries[category].forEach((item,index)=>{
       const itemDiv = document.createElement("div");
-      itemDiv.className = "item";
+      itemDiv.className="item";
       if(item.selected) itemDiv.classList.add("selected");
-
       itemDiv.innerHTML = `
         <div>
           <input value="${item.name}" onchange="updateName('${category}',${index},this.value)">
-          <input type="number" value="${item.price}" onchange="updatePrice('${category}',${index},this.value)">
+          <input class="priceInput" value="₱${item.price}" onchange="updatePrice('${category}',${index},this.value)">
         </div>
         <div class="row">
           <button class="minus" onclick="changeQty('${category}',${index},-1)">-</button>
@@ -212,22 +210,19 @@ function render(){
       itemsDiv.appendChild(itemDiv);
     });
 
-    // Add Item button per category
+    // Add Item button
     const addItemBtn = document.createElement("button");
-    addItemBtn.className = "addItemBtn";
-    addItemBtn.textContent = "+ Add Item";
+    addItemBtn.className="addItemBtn";
+    addItemBtn.textContent="+ Add Item";
     addItemBtn.onclick = ()=>{
-      const name = prompt("Enter item name:", "New Item");
-      if(name){
-        groceries[category].push({name:name, price:0, qty:1, selected:false});
-        render();
-      }
+      const name = prompt("Enter item name","New Item");
+      if(name){ groceries[category].push({name:name,price:0,qty:1,selected:false}); render(); }
     };
     itemsDiv.appendChild(addItemBtn);
 
+    catDiv.appendChild(itemsDiv);
     list.appendChild(catDiv);
   });
-
   computeLiveTotal();
 }
 
@@ -235,46 +230,33 @@ function render(){
 function toggleSelect(cat,i){ groceries[cat][i].selected = !groceries[cat][i].selected; render(); }
 function changeQty(cat,i,val){ groceries[cat][i].qty = Math.max(1, groceries[cat][i].qty+val); render(); }
 function updateName(cat,i,val){ groceries[cat][i].name = val; render(); }
-function updatePrice(cat,i,val){ groceries[cat][i].price = parseFloat(val)||0; render(); }
+function updatePrice(cat,i,val){ groceries[cat][i].price = parseFloat(val.replace('₱',''))||0; render(); }
 function deleteItem(cat,i){ groceries[cat].splice(i,1); render(); }
 
 // Add category
 function addCategoryPrompt(){
   const catName = prompt("Enter new category name:");
-  if(catName && !groceries[catName]){
-    groceries[catName] = [];
-    render();
-  } else if(groceries[catName]){
-    alert("Category already exists!");
-  }
+  if(catName && !groceries[catName]){ groceries[catName] = []; render(); }
+  else if(groceries[catName]) alert("Category already exists!");
 }
 
-// Export data
+// Export / Import
 function exportData(){
   const dataStr = JSON.stringify(groceries,null,2);
-  const blob = new Blob([dataStr], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "lar-v2-backup.json";
+  const blob = new Blob([dataStr],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="lar-v2-backup.json";
   a.click();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(a.href);
 }
-
-// Import data
 function importData(event){
   const file = event.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = function(e){
-    try{
-      const imported = JSON.parse(e.target.result);
-      groceries = imported;
-      render();
-      alert("Data imported successfully!");
-    } catch(err){
-      alert("Invalid JSON file!");
-    }
+  reader.onload = e=>{
+    try{ groceries = JSON.parse(e.target.result); render(); alert("Data imported!"); }
+    catch(err){ alert("Invalid JSON file!"); }
   };
   reader.readAsText(file);
 }
