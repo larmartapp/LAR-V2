@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,67 +10,64 @@
 
 <style>
 body{
-font-family:Arial;
-padding:15px;
-background:#f2f2f2;
-padding-bottom:90px;
+  font-family: Arial, sans-serif;
+  padding: 15px;
+  background: #f2f2f2;
+  padding-bottom: 90px;
 }
 
 .header{
-display:flex;
-align-items:center;
-justify-content:center;
-gap:10px;
-margin-bottom:15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
 }
 
-.logo{height:40px;}
+.logo{ height:40px; }
 
 .category{
-background:white;
-margin-bottom:10px;
-border-radius:10px;
-overflow:hidden;
+  background:white;
+  margin-bottom:10px;
+  border-radius:10px;
+  overflow:hidden;
 }
 
 .cat-header{
-padding:15px;
-font-size:18px;
-font-weight:bold;
-background:#eeeeee;
-cursor:pointer;
+  padding:15px;
+  font-size:18px;
+  font-weight:bold;
+  background:#eeeeee;
+  cursor:pointer;
 }
 
 .items{
-display:none;
-padding:10px;
+  display:none;
+  padding:10px;
 }
 
 .item{
-border:1px solid #ddd;
-padding:8px;
-margin-bottom:8px;
-border-radius:6px;
+  border:1px solid #ddd;
+  padding:8px;
+  margin-bottom:8px;
+  border-radius:6px;
 }
 
 .row{
-display:flex;
-align-items:center;
-gap:6px;
-flex-wrap:wrap;
-margin-top:6px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:6px;
 }
 
-.qty{
-width:40px;
-text-align:center;
-}
+.qty{ width:40px; text-align:center; }
 
 button{
-padding:5px 8px;
-border:none;
-border-radius:5px;
-cursor:pointer;
+  padding:5px 8px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
 }
 
 .select{background:#2196F3;color:white;}
@@ -81,189 +78,130 @@ cursor:pointer;
 .selected{background:#c8e6c9;}
 
 .totalPanel{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:#000;
-color:white;
-padding:15px;
-font-size:18px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-z-index:999;
+  position: fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#000;
+  color:white;
+  padding:15px;
+  font-size:18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  z-index:999;
 }
 
 .totalAmount{
-font-weight:bold;
-font-size:20px;
+  font-weight:bold;
+  font-size:20px;
 }
 </style>
 </head>
-
 <body>
 
 <div class="header">
-<img src="logo.png" class="logo">
-<h2>LAR Mart v2</h2>
+  <img src="logo.png" class="logo" alt="Logo">
+  <h2>LAR Mart v2</h2>
 </div>
 
 <div id="list"></div>
 
 <div class="totalPanel">
-<div>TOTAL</div>
-<div class="totalAmount" id="totalAmount">₱0.00</div>
+  <div>TOTAL</div>
+  <div class="totalAmount" id="totalAmount">₱0.00</div>
 </div>
 
 <script>
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
 
+// Groceries data
 let openCategory = null;
-
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
-"Beverages":[
-{name:"Coffee",price:120,qty:1,selected:false},
-{name:"Milk",price:90,qty:1,selected:false}
-],
-"Snacks":[
-{name:"Chips",price:50,qty:1,selected:false}
-]
+  "Beverages":[
+    {name:"Coffee",price:120,qty:1,selected:false},
+    {name:"Milk",price:90,qty:1,selected:false}
+  ],
+  "Snacks":[
+    {name:"Chips",price:50,qty:1,selected:false}
+  ]
 };
 
 function save(){
-localStorage.setItem("groceries",JSON.stringify(groceries));
+  localStorage.setItem("groceries", JSON.stringify(groceries));
 }
 
 function toggleCategory(cat){
-
-if(openCategory === cat){
-openCategory = null;
-}else{
-openCategory = cat;
-}
-
-render();
+  openCategory = (openCategory===cat) ? null : cat;
+  render();
 }
 
 function computeLiveTotal(){
-
-let total=0;
-
-Object.keys(groceries).forEach(cat=>{
-groceries[cat].forEach(item=>{
-if(item.selected){
-total+=item.price*item.qty;
-}
-});
-});
-
-document.getElementById("totalAmount")
-.innerText="₱"+total.toFixed(2);
-
+  let total = 0;
+  Object.keys(groceries).forEach(cat=>{
+    groceries[cat].forEach(item=>{
+      if(item.selected) total += item.price * item.qty;
+    });
+  });
+  document.getElementById("totalAmount").innerText = "₱"+total.toFixed(2);
 }
 
 function render(){
-
-save();
-
-const list=document.getElementById("list");
-list.innerHTML="";
-
-Object.keys(groceries).forEach(category=>{
-
-const catDiv=document.createElement("div");
-catDiv.className="category";
-
-catDiv.innerHTML=`
-<div class="cat-header"
-onclick="toggleCategory('${category}')">
-${category}
-</div>
-
-<div class="items"
-style="display:${openCategory===category?'block':'none'}">
-</div>
-`;
-
-const itemsDiv=catDiv.querySelector(".items");
-
-groceries[category].forEach((item,index)=>{
-
-const itemDiv=document.createElement("div");
-itemDiv.className="item";
-if(item.selected)itemDiv.classList.add("selected");
-
-itemDiv.innerHTML=`
-<div>
-<input value="${item.name}"
-onchange="updateName('${category}',${index},this.value)">
-<input type="number"
-value="${item.price}"
-onchange="updatePrice('${category}',${index},this.value)">
-</div>
-
-<div class="row">
-<button class="minus"
-onclick="changeQty('${category}',${index},-1)">-</button>
-
-<span class="qty">${item.qty}</span>
-
-<button class="plus"
-onclick="changeQty('${category}',${index},1)">+</button>
-
-<button class="select"
-onclick="toggleSelect('${category}',${index})">
-${item.selected?'Unselect':'Select'}
-</button>
-
-<button class="delete"
-onclick="deleteItem('${category}',${index})">
-Delete
-</button>
-</div>
-`;
-
-itemsDiv.appendChild(itemDiv);
-
-});
-
-list.appendChild(catDiv);
-
-});
-
-computeLiveTotal();
-
+  save();
+  const list=document.getElementById("list");
+  list.innerHTML="";
+  Object.keys(groceries).forEach(category=>{
+    const catDiv=document.createElement("div");
+    catDiv.className="category";
+    catDiv.innerHTML=`
+      <div class="cat-header" onclick="toggleCategory('${category}')">${category}</div>
+      <div class="items" style="display:${openCategory===category?'block':'none'}"></div>
+    `;
+    const itemsDiv=catDiv.querySelector(".items");
+    groceries[category].forEach((item,index)=>{
+      const itemDiv=document.createElement("div");
+      itemDiv.className="item";
+      if(item.selected)itemDiv.classList.add("selected");
+      itemDiv.innerHTML=`
+        <div>
+          <input value="${item.name}" onchange="updateName('${category}',${index},this.value)">
+          <input type="number" value="${item.price}" onchange="updatePrice('${category}',${index},this.value)">
+        </div>
+        <div class="row">
+          <button class="minus" onclick="changeQty('${category}',${index},-1)">-</button>
+          <span class="qty">${item.qty}</span>
+          <button class="plus" onclick="changeQty('${category}',${index},1)">+</button>
+          <button class="select" onclick="toggleSelect('${category}',${index})">${item.selected?'Unselect':'Select'}</button>
+          <button class="delete" onclick="deleteItem('${category}',${index})">Delete</button>
+        </div>
+      `;
+      itemsDiv.appendChild(itemDiv);
+    });
+    list.appendChild(catDiv);
+  });
+  computeLiveTotal();
 }
 
-function toggleSelect(cat,i){
-groceries[cat][i].selected=!groceries[cat][i].selected;
-render();
-}
-
-function changeQty(cat,i,val){
-groceries[cat][i].qty+=val;
-if(groceries[cat][i].qty<1)groceries[cat][i].qty=1;
-render();
-}
-
-function updateName(cat,i,val){
-groceries[cat][i].name=val;
-render();
-}
-
-function updatePrice(cat,i,val){
-groceries[cat][i].price=parseFloat(val)||0;
-render();
-}
-
-function deleteItem(cat,i){
-groceries[cat].splice(i,1);
-render();
-}
+// Item functions
+function toggleSelect(cat,i){ groceries[cat][i].selected=!groceries[cat][i].selected; render(); }
+function changeQty(cat,i,val){ groceries[cat][i].qty=Math.max(1, groceries[cat][i].qty+val); render(); }
+function updateName(cat,i,val){ groceries[cat][i].name=val; render(); }
+function updatePrice(cat,i,val){ groceries[cat][i].price=parseFloat(val)||0; render(); }
+function deleteItem(cat,i){ groceries[cat].splice(i,1); render(); }
 
 render();
 
+// Register service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+    .then(()=>console.log("Service Worker Registered"))
+    .catch(err=>console.log("SW Error:",err));
+}
 </script>
-
 </body>
 </html>
