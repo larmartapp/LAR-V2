@@ -116,11 +116,13 @@ input.priceInput{
 </div>
 
 <script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(()=>console.log("Service Worker Registered"))
-  .catch(err=>console.log("SW Error:", err));
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => console.log("Service Worker Registered"))
+    .catch(err => console.log("SW Error:", err));
 }
 
+// Groceries data
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   "Beverages":[
     {name:"Coffee",price:120,qty:1,selected:false},
@@ -134,7 +136,9 @@ let groceries = JSON.parse(localStorage.getItem("groceries")) || {
 let openCategory = null;
 
 function save(){ localStorage.setItem("groceries", JSON.stringify(groceries)); }
+
 function toggleCategory(cat){ openCategory = (openCategory===cat)?null:cat; render(); }
+
 function computeLiveTotal(){
   let total = 0;
   Object.keys(groceries).forEach(cat=>{
@@ -157,7 +161,7 @@ function render(){
     const catHeader=document.createElement("div");
     catHeader.className="cat-header";
 
-    // Category name clickable to open
+    // Category name clickable to toggle
     const nameSpan=document.createElement("span");
     nameSpan.textContent=category;
     nameSpan.style.cursor="pointer";
@@ -186,9 +190,7 @@ function render(){
     itemsDiv.className="items";
     itemsDiv.style.display=openCategory===category?"block":"none";
 
-    // SORT ITEMS
     groceries[category].sort((a,b)=>a.name.localeCompare(b.name));
-
     groceries[category].forEach((item,index)=>{
       const itemDiv=document.createElement("div");
       itemDiv.className="item";
