@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LAR Mart v2</title>
 
+<!-- PWA manifest -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
 
@@ -101,7 +102,7 @@ button{
 <body>
 
 <div class="header">
-  <img src="logo.png" class="logo" alt="Logo">
+  <img src="logo-192.png" class="logo" alt="Logo">
   <h2>LAR Mart v2</h2>
 </div>
 
@@ -113,14 +114,21 @@ button{
 </div>
 
 <script>
-// PWA install prompt
+// Service worker registration for PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js')
+    .then(()=>console.log("Service Worker Registered"))
+    .catch(err=>console.log("SW Error:", err));
+}
+
+// Optional: capture install prompt for Android
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
 });
 
-// Groceries data
+// Groceries app data
 let openCategory = null;
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   "Beverages":[
@@ -132,14 +140,8 @@ let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   ]
 };
 
-function save(){
-  localStorage.setItem("groceries", JSON.stringify(groceries));
-}
-
-function toggleCategory(cat){
-  openCategory = (openCategory===cat) ? null : cat;
-  render();
-}
+function save(){ localStorage.setItem("groceries", JSON.stringify(groceries)); }
+function toggleCategory(cat){ openCategory = (openCategory===cat)?null:cat; render(); }
 
 function computeLiveTotal(){
   let total = 0;
@@ -148,26 +150,29 @@ function computeLiveTotal(){
       if(item.selected) total += item.price * item.qty;
     });
   });
-  document.getElementById("totalAmount").innerText = "₱"+total.toFixed(2);
+  document.getElementById("totalAmount").innerText = "₱" + total.toFixed(2);
 }
 
 function render(){
   save();
-  const list=document.getElementById("list");
-  list.innerHTML="";
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
   Object.keys(groceries).forEach(category=>{
-    const catDiv=document.createElement("div");
-    catDiv.className="category";
-    catDiv.innerHTML=`
+    const catDiv = document.createElement("div");
+    catDiv.className = "category";
+    catDiv.innerHTML = `
       <div class="cat-header" onclick="toggleCategory('${category}')">${category}</div>
       <div class="items" style="display:${openCategory===category?'block':'none'}"></div>
     `;
-    const itemsDiv=catDiv.querySelector(".items");
+    const itemsDiv = catDiv.querySelector(".items");
+
     groceries[category].forEach((item,index)=>{
-      const itemDiv=document.createElement("div");
-      itemDiv.className="item";
-      if(item.selected)itemDiv.classList.add("selected");
-      itemDiv.innerHTML=`
+      const itemDiv = document.createElement("div");
+      itemDiv.className = "item";
+      if(item.selected) itemDiv.classList.add("selected");
+
+      itemDiv.innerHTML = `
         <div>
           <input value="${item.name}" onchange="updateName('${category}',${index},this.value)">
           <input type="number" value="${item.price}" onchange="updatePrice('${category}',${index},this.value)">
@@ -182,26 +187,21 @@ function render(){
       `;
       itemsDiv.appendChild(itemDiv);
     });
+
     list.appendChild(catDiv);
   });
+
   computeLiveTotal();
 }
 
 // Item functions
-function toggleSelect(cat,i){ groceries[cat][i].selected=!groceries[cat][i].selected; render(); }
-function changeQty(cat,i,val){ groceries[cat][i].qty=Math.max(1, groceries[cat][i].qty+val); render(); }
-function updateName(cat,i,val){ groceries[cat][i].name=val; render(); }
-function updatePrice(cat,i,val){ groceries[cat][i].price=parseFloat(val)||0; render(); }
+function toggleSelect(cat,i){ groceries[cat][i].selected = !groceries[cat][i].selected; render(); }
+function changeQty(cat,i,val){ groceries[cat][i].qty = Math.max(1, groceries[cat][i].qty+val); render(); }
+function updateName(cat,i,val){ groceries[cat][i].name = val; render(); }
+function updatePrice(cat,i,val){ groceries[cat][i].price = parseFloat(val)||0; render(); }
 function deleteItem(cat,i){ groceries[cat].splice(i,1); render(); }
 
 render();
-
-// Register service worker
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js')
-    .then(()=>console.log("Service Worker Registered"))
-    .catch(err=>console.log("SW Error:",err));
-}
 </script>
 </body>
 </html>
