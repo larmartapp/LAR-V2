@@ -14,7 +14,7 @@ body{
   font-family: Arial, sans-serif;
   padding: 15px;
   background: #f2f2f2;
-  padding-bottom: 140px;
+  padding-bottom: 160px;
 }
 
 .header{
@@ -80,6 +80,8 @@ button{
 .exportBtn{background:#607D8B;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 .importBtn{background:#FF5722;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 
+.addItemBtn{background:#3F51B5;color:white;padding:5px 8px;border-radius:5px;margin-top:5px;}
+
 .selected{background:#c8e6c9;}
 
 .totalPanel{
@@ -114,7 +116,7 @@ button{
   <h2>LAR Mart v2</h2>
 </div>
 
-<!-- Category controls -->
+<!-- Category & backup controls -->
 <div>
   <button class="addCategoryBtn" onclick="addCategoryPrompt()">+ Add Category</button>
   <button class="exportBtn" onclick="exportData()">Export</button>
@@ -137,7 +139,7 @@ if('serviceWorker' in navigator){
     .catch(err=>console.log("SW Error:", err));
 }
 
-// Android install prompt capture
+// Android install prompt
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
@@ -188,6 +190,7 @@ function render(){
     `;
     const itemsDiv = catDiv.querySelector(".items");
 
+    // Render items
     groceries[category].forEach((item,index)=>{
       const itemDiv = document.createElement("div");
       itemDiv.className = "item";
@@ -208,6 +211,19 @@ function render(){
       `;
       itemsDiv.appendChild(itemDiv);
     });
+
+    // Add Item button per category
+    const addItemBtn = document.createElement("button");
+    addItemBtn.className = "addItemBtn";
+    addItemBtn.textContent = "+ Add Item";
+    addItemBtn.onclick = ()=>{
+      const name = prompt("Enter item name:", "New Item");
+      if(name){
+        groceries[category].push({name:name, price:0, qty:1, selected:false});
+        render();
+      }
+    };
+    itemsDiv.appendChild(addItemBtn);
 
     list.appendChild(catDiv);
   });
