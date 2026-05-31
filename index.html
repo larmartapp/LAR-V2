@@ -118,7 +118,9 @@ input.priceInput{
 </div>
 
 <!-- SEARCH -->
-<input type="text" class="searchBox" id="searchInput" placeholder="Search item..." oninput="searchItems()">
+<input type="text" class="searchBox" id="searchInput"
+placeholder="Search item (e.g. Milk)..."
+oninput="searchItems()">
 
 <div>
   <button class="addCategoryBtn" onclick="addCategoryPrompt()">+ Add Category</button>
@@ -139,7 +141,6 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
 
-// DATA
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   "Beverages":[
     {name:"Coffee",price:120,qty:1,selected:false},
@@ -171,9 +172,11 @@ function computeLiveTotal(){
   document.getElementById("totalAmount").innerText = "₱" + total.toFixed(2);
 }
 
-/* ✅ FIXED SEARCH (CORRECT + RELIABLE) */
+/* 🔥 FIXED SEARCH (JUMP + SCROLL + OPEN CATEGORY) */
 function searchItems(){
-  const keyword = document.getElementById("searchInput").value.toLowerCase();
+  const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+
+  let firstMatch = null;
 
   document.querySelectorAll(".category").forEach(cat=>{
     let items = cat.querySelectorAll(".item");
@@ -183,26 +186,36 @@ function searchItems(){
       const input = item.querySelector("input");
       const text = input ? input.value.toLowerCase() : "";
 
-      if(text.includes(keyword)){
+      if(keyword === "" || text.includes(keyword)){
         item.style.display = "block";
         hasMatch = true;
+
+        if(!firstMatch && keyword !== ""){
+          firstMatch = item;
+        }
       } else {
-        item.style.display = keyword === "" ? "block" : "none";
+        item.style.display = "none";
       }
     });
 
-    // show/hide category
-    if(hasMatch || keyword === ""){
-      cat.style.display = "block";
-    } else {
-      cat.style.display = "none";
+    cat.style.display = (hasMatch || keyword === "") ? "block" : "none";
+
+    if(hasMatch && keyword !== ""){
+      const itemsDiv = cat.querySelector(".items");
+      if(itemsDiv) itemsDiv.style.display = "block";
     }
   });
+
+  if(firstMatch){
+    firstMatch.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
 }
 
 function render(){
   save();
-
   const list = document.getElementById("list");
   list.innerHTML = "";
 
@@ -284,7 +297,7 @@ function render(){
   computeLiveTotal();
 }
 
-// FUNCTIONS
+/* FUNCTIONS */
 function toggleSelect(cat,i){
   groceries[cat][i].selected = !groceries[cat][i].selected;
   render();
@@ -306,7 +319,7 @@ function deleteItem(cat,i){
   render();
 }
 
-// CATEGORY
+/* CATEGORY */
 function addCategoryPrompt(){
   const name = prompt("New category name:");
   if(name && !groceries[name]){
@@ -315,7 +328,7 @@ function addCategoryPrompt(){
   }
 }
 
-// EXPORT / IMPORT
+/* EXPORT / IMPORT */
 function exportData(){
   const blob = new Blob([JSON.stringify(groceries,null,2)],{type:"application/json"});
   const a = document.createElement("a");
