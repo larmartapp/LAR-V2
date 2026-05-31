@@ -6,6 +6,7 @@
 <title>LAR Mart v2</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000000">
+
 <style>
 body{
   font-family: Arial, sans-serif;
@@ -21,6 +22,7 @@ body{
   margin-bottom: 15px;
 }
 .logo{ height:40px; }
+
 .category{
   background:white;
   margin-bottom:10px;
@@ -54,6 +56,7 @@ body{
   margin-top:6px;
 }
 .qty{ width:40px; text-align:center; }
+
 button{
   padding:5px 8px;
   border:none;
@@ -64,12 +67,15 @@ button{
 .plus{background:#4CAF50;color:white;}
 .minus{background:#ff9800;color:white;}
 .delete{background:#e53935;color:white;}
+
 .addCategoryBtn{background:#9C27B0;color:white;margin-bottom:10px;padding:8px 12px;border-radius:5px;}
 .exportBtn{background:#607D8B;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 .importBtn{background:#FF5722;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 .addItemBtn{background:#3F51B5;color:white;padding:5px 8px;border-radius:5px;margin-top:5px;}
 .editCatBtn{background:#FF9800;color:white;padding:5px 8px;border-radius:5px;margin-left:5px;}
+
 .selected{background:#c8e6c9;}
+
 .totalPanel{
   position: fixed;
   bottom:0;
@@ -89,17 +95,34 @@ button{
   font-size:20px;
 }
 .hiddenInput{ display:none; }
+
 input.priceInput{
   width:80px;
 }
+
+/* ⭐ SEARCH BAR */
+.searchBox{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  margin-bottom:10px;
+}
+.highlight{
+  background: yellow;
+}
 </style>
 </head>
+
 <body>
 
 <div class="header">
   <img src="logo-192.png" class="logo" alt="Logo">
   <h2>LAR Mart v2</h2>
 </div>
+
+<!-- ⭐ SEARCH BAR -->
+<input type="text" id="searchInput" class="searchBox" placeholder="Search item or category..." oninput="searchItems()">
 
 <div>
   <button class="addCategoryBtn" onclick="addCategoryPrompt()">+ Add Category</button>
@@ -117,12 +140,10 @@ input.priceInput{
 
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log("Service Worker Registered"))
-    .catch(err => console.log("SW Error:", err));
+  navigator.serviceWorker.register('sw.js');
 }
 
-// Groceries data
+// DATA
 let groceries = JSON.parse(localStorage.getItem("groceries")) || {
   "Beverages":[
     {name:"Coffee",price:120,qty:1,selected:false},
@@ -135,9 +156,14 @@ let groceries = JSON.parse(localStorage.getItem("groceries")) || {
 
 let openCategory = null;
 
-function save(){ localStorage.setItem("groceries", JSON.stringify(groceries)); }
+function save(){
+  localStorage.setItem("groceries", JSON.stringify(groceries));
+}
 
-function toggleCategory(cat){ openCategory = (openCategory===cat)?null:cat; render(); }
+function toggleCategory(cat){
+  openCategory = (openCategory===cat)?null:cat;
+  render();
+}
 
 function computeLiveTotal(){
   let total = 0;
@@ -149,26 +175,54 @@ function computeLiveTotal(){
   document.getElementById("totalAmount").innerText = "₱" + total.toFixed(2);
 }
 
+/* ⭐ SEARCH FUNCTION */
+function searchItems(){
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+
+  document.querySelectorAll(".category").forEach(cat=>{
+    let catMatch = cat.innerText.toLowerCase().includes(keyword);
+    let hasVisibleItems = false;
+
+    cat.querySelectorAll(".item").forEach(item=>{
+      const text = item.innerText.toLowerCase();
+
+      if(text.includes(keyword)){
+        item.style.display = "block";
+        hasVisibleItems = true;
+      } else {
+        item.style.display = "none";
+      }
+    });
+
+    // show category if match or has matching items
+    if(catMatch || hasVisibleItems || keyword === ""){
+      cat.style.display = "block";
+    } else {
+      cat.style.display = "none";
+    }
+  });
+}
+
 function render(){
   save();
   const list = document.getElementById("list");
   list.innerHTML = "";
 
   const sortedCategories = Object.keys(groceries).sort();
+
   sortedCategories.forEach(category=>{
     const catDiv=document.createElement("div");
     catDiv.className="category";
+
     const catHeader=document.createElement("div");
     catHeader.className="cat-header";
 
-    // Category name clickable to toggle
     const nameSpan=document.createElement("span");
     nameSpan.textContent=category;
     nameSpan.style.cursor="pointer";
     nameSpan.onclick=()=>toggleCategory(category);
     catHeader.appendChild(nameSpan);
 
-    // Edit button
     const editBtn=document.createElement("button");
     editBtn.className="editCatBtn";
     editBtn.textContent="Edit";
@@ -178,8 +232,6 @@ function render(){
         groceries[newName]=groceries[category];
         delete groceries[category];
         render();
-      } else if(newName){
-        alert("Category already exists!");
       }
     };
     catHeader.appendChild(editBtn);
@@ -191,10 +243,12 @@ function render(){
     itemsDiv.style.display=openCategory===category?"block":"none";
 
     groceries[category].sort((a,b)=>a.name.localeCompare(b.name));
+
     groceries[category].forEach((item,index)=>{
       const itemDiv=document.createElement("div");
       itemDiv.className="item";
       if(item.selected)itemDiv.classList.add("selected");
+
       itemDiv.innerHTML=`
         <div>
           <input value="${item.name}" onchange="updateName('${category}',${index},this.value)">
@@ -211,58 +265,75 @@ function render(){
       itemsDiv.appendChild(itemDiv);
     });
 
-    // Add Item button
     const addItemBtn=document.createElement("button");
     addItemBtn.className="addItemBtn";
     addItemBtn.textContent="+ Add Item";
     addItemBtn.onclick=()=>{
-      const name=prompt("Enter item name:","New Item");
-      if(name){ groceries[category].push({name:name,price:0,qty:1,selected:false}); render(); }
+      const name=prompt("Enter item name:");
+      if(name){ groceries[category].push({name,price:0,qty:1,selected:false}); render(); }
     };
+
     itemsDiv.appendChild(addItemBtn);
 
     catDiv.appendChild(itemsDiv);
     list.appendChild(catDiv);
   });
+
   computeLiveTotal();
 }
 
-// Item functions
-function toggleSelect(cat,i){ groceries[cat][i].selected = !groceries[cat][i].selected; render(); }
-function changeQty(cat,i,val){ groceries[cat][i].qty=Math.max(1, groceries[cat][i].qty+val); render(); }
-function updateName(cat,i,val){ groceries[cat][i].name=val; render(); }
-function updatePrice(cat,i,val){ groceries[cat][i].price=parseFloat(val.replace('₱',''))||0; render(); }
-function deleteItem(cat,i){ groceries[cat].splice(i,1); render(); }
-
-// Add category
-function addCategoryPrompt(){
-  const catName=prompt("Enter new category name:");
-  if(catName && !groceries[catName]){ groceries[catName]=[]; render(); }
-  else if(groceries[catName]) alert("Category already exists!");
+// FUNCTIONS
+function toggleSelect(cat,i){
+  groceries[cat][i].selected = !groceries[cat][i].selected;
+  render();
+}
+function changeQty(cat,i,val){
+  groceries[cat][i].qty = Math.max(1, groceries[cat][i].qty + val);
+  render();
+}
+function updateName(cat,i,val){
+  groceries[cat][i].name = val;
+  render();
+}
+function updatePrice(cat,i,val){
+  groceries[cat][i].price = parseFloat(val.replace('₱','')) || 0;
+  render();
+}
+function deleteItem(cat,i){
+  groceries[cat].splice(i,1);
+  render();
 }
 
-// Export / Import
+// CATEGORY
+function addCategoryPrompt(){
+  const catName=prompt("Enter new category name:");
+  if(catName && !groceries[catName]){
+    groceries[catName]=[];
+    render();
+  }
+}
+
+// EXPORT / IMPORT
 function exportData(){
-  const dataStr=JSON.stringify(groceries,null,2);
-  const blob=new Blob([dataStr],{type:"application/json"});
+  const blob=new Blob([JSON.stringify(groceries,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
   a.download="lar-v2-backup.json";
   a.click();
-  URL.revokeObjectURL(a.href);
 }
+
 function importData(event){
   const file=event.target.files[0];
-  if(!file) return;
   const reader=new FileReader();
   reader.onload=e=>{
-    try{ groceries=JSON.parse(e.target.result); render(); alert("Data imported!"); }
-    catch(err){ alert("Invalid JSON file!"); }
+    groceries=JSON.parse(e.target.result);
+    render();
   };
   reader.readAsText(file);
 }
 
 render();
 </script>
+
 </body>
 </html>
