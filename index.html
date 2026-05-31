@@ -81,6 +81,7 @@ button{
 .importBtn{background:#FF5722;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 .addItemBtn{background:#3F51B5;color:white;padding:5px 8px;border-radius:5px;margin-top:5px;}
 .editCatBtn{background:#FF9800;color:white;padding:5px 8px;border-radius:5px;margin-left:5px;}
+.clearBtn{background:#4CAF50;color:white;padding:8px 12px;border-radius:5px;margin-left:5px;}
 
 .selected{background:#c8e6c9;}
 
@@ -119,11 +120,14 @@ input.priceInput{
 
 <!-- SEARCH -->
 <input type="text" class="searchBox" id="searchInput"
-placeholder="Search item (e.g. Milk)..."
+placeholder="Search item..."
 oninput="searchItems()">
 
 <div>
   <button class="addCategoryBtn" onclick="addCategoryPrompt()">+ Add Category</button>
+
+  <button class="clearBtn" onclick="clearSelected()">Clear Selected</button>
+
   <button class="exportBtn" onclick="exportData()">Export</button>
   <button class="importBtn" onclick="document.getElementById('importFile').click()">Import</button>
   <input type="file" id="importFile" class="hiddenInput" onchange="importData(event)">
@@ -172,7 +176,7 @@ function computeLiveTotal(){
   document.getElementById("totalAmount").innerText = "₱" + total.toFixed(2);
 }
 
-/* 🔥 FIXED SEARCH (JUMP + SCROLL + OPEN CATEGORY) */
+/* SEARCH */
 function searchItems(){
   const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
 
@@ -207,10 +211,7 @@ function searchItems(){
   });
 
   if(firstMatch){
-    firstMatch.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
+    firstMatch.scrollIntoView({behavior:"smooth",block:"center"});
   }
 }
 
@@ -251,8 +252,6 @@ function render(){
     const itemsDiv = document.createElement("div");
     itemsDiv.className = "items";
     itemsDiv.style.display = (openCategory === category) ? "block" : "none";
-
-    groceries[category].sort((a,b)=>a.name.localeCompare(b.name));
 
     groceries[category].forEach((item,index)=>{
       const itemDiv = document.createElement("div");
@@ -295,6 +294,16 @@ function render(){
   });
 
   computeLiveTotal();
+}
+
+/* CLEAR SELECTED */
+function clearSelected(){
+  Object.keys(groceries).forEach(cat=>{
+    groceries[cat].forEach(item=>{
+      item.selected = false;
+    });
+  });
+  render();
 }
 
 /* FUNCTIONS */
